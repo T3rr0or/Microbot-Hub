@@ -19,6 +19,13 @@ public class AttackAction implements CombatAction {
         if (!shouldAttack) return;
         if (!TerrorPkPlugin.validTarget()) return;
 
+        // Add a small delay to allow gear swap to complete before attacking
+        try {
+            Thread.sleep(100);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+
         // Run attack on the client thread to ensure it executes reliably
         Microbot.getClientThread().invoke(() -> {
             Actor target = TerrorPkPlugin.getTarget();
