@@ -7,6 +7,7 @@ public class TripleEatAction implements CombatAction {
     private final String firstFoodId;
     private static final int KARAMBWAN_ID = 3144;
     private static final int KARAMBWAN_WILDERNESS_ID = 24595;
+    private static final int KARAMBWAN_LMS_ID = 23533;
 
     public TripleEatAction(String firstFoodId) {
         this.firstFoodId = firstFoodId;
@@ -27,8 +28,8 @@ public class TripleEatAction implements CombatAction {
         }
 
         // 2. Drink brew (find any brew in inventory)
-        // Common brew IDs: Saradomin brew(4)=6685, (3)=6687, (2)=6689, (1)=6691
-        int[] brewIds = {6685, 6687, 6689, 6691};
+        // Common brew IDs: Saradomin brew(4)=6685, (3)=6687, (2)=6689, (1)=6691, LMS=23577
+        int[] brewIds = {6685, 6687, 6689, 6691, 23577};
         for (int brewId : brewIds) {
             if (Rs2Inventory.contains(brewId)) {
                 Rs2Inventory.interact(brewId, "Drink");
@@ -36,11 +37,13 @@ public class TripleEatAction implements CombatAction {
             }
         }
 
-        // 3. Eat karambwan (normal or wilderness variant)
+        // 3. Eat karambwan (normal, wilderness, or LMS variant)
         if (Rs2Inventory.contains(KARAMBWAN_ID)) {
             Rs2Inventory.interact(KARAMBWAN_ID, "Eat");
         } else if (Rs2Inventory.contains(KARAMBWAN_WILDERNESS_ID)) {
             Rs2Inventory.interact(KARAMBWAN_WILDERNESS_ID, "Eat");
+        } else if (Rs2Inventory.contains(KARAMBWAN_LMS_ID)) {
+            Rs2Inventory.interact(KARAMBWAN_LMS_ID, "Eat");
         }
     }
 }

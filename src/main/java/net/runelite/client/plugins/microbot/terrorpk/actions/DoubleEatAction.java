@@ -7,6 +7,7 @@ public class DoubleEatAction implements CombatAction {
     private final String firstFoodId;
     private static final int KARAMBWAN_ID = 3144;
     private static final int KARAMBWAN_WILDERNESS_ID = 24595;
+    private static final int KARAMBWAN_LMS_ID = 23533;
 
     public DoubleEatAction(String firstFoodId) {
         this.firstFoodId = firstFoodId;
@@ -26,11 +27,13 @@ public class DoubleEatAction implements CombatAction {
             }
         }
 
-        // 2. Eat karambwan (normal or wilderness variant)
+        // 2. Eat karambwan (normal, wilderness, or LMS variant)
         if (Rs2Inventory.contains(KARAMBWAN_ID)) {
             Rs2Inventory.interact(KARAMBWAN_ID, "Eat");
         } else if (Rs2Inventory.contains(KARAMBWAN_WILDERNESS_ID)) {
             Rs2Inventory.interact(KARAMBWAN_WILDERNESS_ID, "Eat");
+        } else if (Rs2Inventory.contains(KARAMBWAN_LMS_ID)) {
+            Rs2Inventory.interact(KARAMBWAN_LMS_ID, "Eat");
         }
     }
 }

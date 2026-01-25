@@ -155,7 +155,7 @@ public class TerrorPkPlugin extends Plugin implements KeyListener {
         // Potion hotkeys
         if (processKey(e, config.restoreHotkey(), () -> relayHandler.action(config.restoreHotkey(), new DrinkPotionAction("super restore", 3024, 3026, 3028, 3030))))
             return;
-        if (processKey(e, config.brewHotkey(), () -> relayHandler.action(config.brewHotkey(), new DrinkPotionAction("saradomin brew", 6685, 6687, 6689, 6691))))
+        if (processKey(e, config.brewHotkey(), () -> relayHandler.action(config.brewHotkey(), new DrinkPotionAction("saradomin brew", 6685, 6687, 6689, 6691, 23577))))
             return;
         if (processKey(e, config.combatPotionHotkey(), () -> relayHandler.action(config.combatPotionHotkey(), new DrinkPotionAction("super combat", 12695, 12697, 12699, 12701))))
             return;
