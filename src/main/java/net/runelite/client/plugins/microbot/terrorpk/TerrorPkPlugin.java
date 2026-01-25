@@ -32,10 +32,10 @@ import static net.runelite.client.plugins.microbot.Microbot.isLoggedIn;
 
 @Slf4j
 @PluginDescriptor(
-        name = PluginConstants.DEFAULT_PREFIX + "TerrorPk",
+        name = "<html>[<font color=#000000>💀</font>] " + "TerrorPk",
         description = "Combat utility for TerrorPk: swaps, specs, prayers, and hotkeys.",
         tags = {"combat", "hotkeys", "microbot"},
-        authors = {"Bradley"},
+        authors = {"Terrpr"},
         version = TerrorPkPlugin.version,
         minClientVersion = "2.0.7",
         enabledByDefault = PluginConstants.DEFAULT_ENABLED,
