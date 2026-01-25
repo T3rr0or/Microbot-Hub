@@ -433,22 +433,32 @@ public interface TerrorPkConfig extends Config {
         return false;
     }
 
-    @ConfigItem(keyName = "enableOffensiveSpells", name = "Enable Offensive Spells", description = "If enabled, offensive spell toggling becomes available.", position = 4, section = prayerSection)
+    @ConfigItem(keyName = "autoPrayDelayMin", name = "Auto-pray Delay Min (ms)", description = "Minimum delay in milliseconds before changing prayer based on target.", position = 4, section = prayerSection)
+    default int autoPrayDelayMin() {
+        return 0;
+    }
+
+    @ConfigItem(keyName = "autoPrayDelayMax", name = "Auto-pray Delay Max (ms)", description = "Maximum delay in milliseconds before changing prayer based on target.", position = 5, section = prayerSection)
+    default int autoPrayDelayMax() {
+        return 0;
+    }
+
+    @ConfigItem(keyName = "enableOffensiveSpells", name = "Enable Offensive Spells", description = "If enabled, offensive spell toggling becomes available.", position = 6, section = prayerSection)
     default boolean enableOffensiveSpells() {
         return false;
     }
 
-    @ConfigItem(keyName = "hasRigour", name = "Rigour Unlocked", description = "If you have Rigour unlocked", position = 5, section = prayerSection)
+    @ConfigItem(keyName = "hasRigour", name = "Rigour Unlocked", description = "If you have Rigour unlocked", position = 7, section = prayerSection)
     default boolean hasRigour() {
         return false;
     }
 
-    @ConfigItem(keyName = "hasAugury", name = "Augury Unlocked", description = "If you have Augury unlocked", position = 6, section = prayerSection)
+    @ConfigItem(keyName = "hasAugury", name = "Augury Unlocked", description = "If you have Augury unlocked", position = 8, section = prayerSection)
     default boolean hasAugury() {
         return false;
     }
 
-    @ConfigItem(keyName = "hasPiety", name = "Piety Unlocked", description = "If you have Piety unlocked", position = 7, section = prayerSection)
+    @ConfigItem(keyName = "hasPiety", name = "Piety Unlocked", description = "If you have Piety unlocked", position = 9, section = prayerSection)
     default boolean hasPiety() {
         return false;
     }

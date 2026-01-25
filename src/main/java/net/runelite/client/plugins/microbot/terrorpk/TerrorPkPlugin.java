@@ -161,6 +161,8 @@ public class TerrorPkPlugin extends Plugin implements KeyListener {
             return;
         if (processKey(e, config.rangePotionHotkey(), () -> relayHandler.action(config.rangePotionHotkey(), new DrinkPotionAction("ranging potion", 2444, 2446, 2448, 2450))))
             return;
+        if (processKey(e, config.clearTargetHotkey(), () -> clearTarget()))
+            return;
         if (processKey(e, config.walkUnderHotkey(), () -> relayHandler.action(config.walkUnderHotkey(), new WalkUnderAction())))
             ;
     }
