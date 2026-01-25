@@ -24,6 +24,7 @@ public class SpecAction implements CombatAction {
         String gearIDs;
         boolean attackTarget;
         boolean useVengeance;
+        int specDelay;
         switch (variant) {
             case 1:
                 requiredEnergy = config.specEnergyPrimary();
@@ -32,6 +33,7 @@ public class SpecAction implements CombatAction {
                 gearIDs = config.gearIDsSpecialAttackPrimary();
                 attackTarget = config.attackTargetSpecPrimary();
                 useVengeance = config.useVengeanceSpecPrimary();
+                specDelay = config.specDelayPrimary();
                 break;
             case 2:
                 requiredEnergy = config.specEnergySecondary();
@@ -40,6 +42,7 @@ public class SpecAction implements CombatAction {
                 gearIDs = config.gearIDsSpecialAttackSecondary();
                 attackTarget = config.attackTargetSpecSecondary();
                 useVengeance = config.useVengeanceSpecSecondary();
+                specDelay = config.specDelaySecondary();
                 break;
             case 3:
                 requiredEnergy = config.specEnergyTertiary();
@@ -48,6 +51,7 @@ public class SpecAction implements CombatAction {
                 gearIDs = config.gearIDsSpecialAttackTertiary();
                 attackTarget = config.attackTargetSpecTertiary();
                 useVengeance = config.useVengeanceSpecTertiary();
+                specDelay = config.specDelayTertiary();
                 break;
             default:
                 return;
@@ -60,7 +64,7 @@ public class SpecAction implements CombatAction {
         }
         new PrayOffensiveAction(config, prayerStyle).execute();
         new EquipAction(gearIDs).execute();
-        new EnableSpecAction(config, variant).execute();
+        new EnableSpecAction(config, variant, specDelay).execute();
         new VengeanceAction(useVengeance).execute();
         new AttackAction(attackTarget).execute();
     }

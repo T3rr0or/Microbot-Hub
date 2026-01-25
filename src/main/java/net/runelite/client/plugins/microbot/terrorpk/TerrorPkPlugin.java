@@ -22,7 +22,6 @@ import net.runelite.client.plugins.microbot.terrorpk.handlers.PostActionHandler;
 import net.runelite.client.plugins.microbot.terrorpk.handlers.RelayHandler;
 import net.runelite.client.plugins.microbot.terrorpk.handlers.TankHandler;
 import net.runelite.client.plugins.microbot.util.prayer.Rs2PrayerEnum;
-import net.runelite.client.plugins.microbot.util.player.Rs2Player;
 import net.runelite.client.ui.overlay.OverlayManager;
 
 import javax.inject.Inject;
@@ -147,7 +146,20 @@ public class TerrorPkPlugin extends Plugin implements KeyListener {
             return;
         if (processKey(e, config.hotkeyTank(), () -> relayHandler.action(config.hotkeyTank(), new TankAction(config))))
             return;
-        if (processKey(e, config.eatBestFood(), () -> Rs2Player.useFood()))
+        if (processKey(e, config.singleEatHotkey(), () -> relayHandler.action(config.singleEatHotkey(), new EatAction(config.singleEatFood(), 1))))
+            return;
+        if (processKey(e, config.doubleEatHotkey(), () -> relayHandler.action(config.doubleEatHotkey(), new DoubleEatAction(config.doubleEatFirstFood()))))
+            return;
+        if (processKey(e, config.tripleEatHotkey(), () -> relayHandler.action(config.tripleEatHotkey(), new TripleEatAction(config.tripleEatFirstFood()))))
+            return;
+        // Potion hotkeys
+        if (processKey(e, config.restoreHotkey(), () -> relayHandler.action(config.restoreHotkey(), new DrinkPotionAction("super restore", 3024, 3026, 3028, 3030))))
+            return;
+        if (processKey(e, config.brewHotkey(), () -> relayHandler.action(config.brewHotkey(), new DrinkPotionAction("saradomin brew", 6685, 6687, 6689, 6691))))
+            return;
+        if (processKey(e, config.combatPotionHotkey(), () -> relayHandler.action(config.combatPotionHotkey(), new DrinkPotionAction("super combat", 12695, 12697, 12699, 12701))))
+            return;
+        if (processKey(e, config.rangePotionHotkey(), () -> relayHandler.action(config.rangePotionHotkey(), new DrinkPotionAction("ranging potion", 2444, 2446, 2448, 2450))))
             return;
         if (processKey(e, config.walkUnderHotkey(), () -> relayHandler.action(config.walkUnderHotkey(), new WalkUnderAction())))
             ;

@@ -57,20 +57,22 @@ public class TerrorPkScript extends Script {
                 try {
                     if (config.autoPrayAgainstPlayers()) {
                         // Read client-only data on the client thread to avoid thread errors
-                        int[] data = Microbot.getClientThread().invoke(() -> {
+                        Object[] data = Microbot.getClientThread().invoke(() -> {
                             Player localPlayer = Microbot.getClient().getLocalPlayer();
-                            if (localPlayer == null) return new int[]{0, -1, -1};
-                            if (!(localPlayer.getInteracting() instanceof Player)) return new int[]{2, -1, -1};
+                            if (localPlayer == null) return new Object[]{0, -1, -1, null};
+                            if (!(localPlayer.getInteracting() instanceof Player)) return new Object[]{2, -1, -1, null};
                             Player attacker = (Player) localPlayer.getInteracting();
                             int anim = attacker.getAnimation();
                             int weapon = attacker.getPlayerComposition().getEquipmentId(KitType.WEAPON);
-                            return new int[]{1, anim, weapon};
+                            String playerName = attacker.getName();
+                            return new Object[]{1, anim, weapon, playerName};
                         });
 
                         if (data == null) return;
-                        int state = data[0];
+                        int state = (int) data[0];
                         if (state == 2) {
                             if (lastPrayedStyle != null && System.currentTimeMillis() - lastPkAttackTime > PRAYER_DISABLE_DELAY_MS) {
+                                System.out.println("[AutoPray] No player interaction - disabling prayers after delay");
                                 Rs2Prayer.toggle(Rs2PrayerEnum.PROTECT_MELEE, false);
                                 Rs2Prayer.toggle(Rs2PrayerEnum.PROTECT_MAGIC, false);
                                 Rs2Prayer.toggle(Rs2PrayerEnum.PROTECT_RANGE, false);
@@ -79,27 +81,46 @@ public class TerrorPkScript extends Script {
                                 followEndTime = 0;
                             }
                         } else if (state == 1) {
-                            int animationId = data[1];
-                            int weaponId = data[2];
+                            int animationId = (int) data[1];
+                            int weaponId = (int) data[2];
+                            String playerName = (String) data[3];
 
                             String detectedStyle = null;
                             WeaponAnimation anim = WeaponAnimation.getByAnimationId(animationId);
                             WeaponID weapon = WeaponID.getByObjectId(weaponId);
 
+                            // Debug logging
+                            System.out.println("[AutoPray] === Player Combat Detection ===");
+                            System.out.println("[AutoPray] Opponent: " + (playerName != null ? playerName : "Unknown"));
+                            System.out.println("[AutoPray] Weapon ID: " + weaponId);
+                            System.out.println("[AutoPray] Animation ID: " + animationId);
+                            
                             if (weapon != null) {
                                 detectedStyle = weapon.getAttackType().toLowerCase();
+                                System.out.println("[AutoPray] Weapon detected: " + weapon.getItemName() + " (" + weapon.getAttackType() + ")");
+                            } else {
+                                System.out.println("[AutoPray] Weapon: Unknown (ID " + weaponId + ")");
                             }
+                            
                             if (anim != null) {
                                 detectedStyle = anim.getAttackType().toLowerCase();
+                                System.out.println("[AutoPray] Animation detected: " + anim.getAnimationName() + " (" + anim.getAttackType() + ")");
+                            } else if (animationId != -1) {
+                                System.out.println("[AutoPray] Animation: Unknown (ID " + animationId + ")");
                             }
 
                             if (detectedStyle != null) {
+                                System.out.println("[AutoPray] Decision: Praying against " + detectedStyle.toUpperCase());
                                 prayStyle(detectedStyle);
+                            } else {
+                                System.out.println("[AutoPray] Decision: No style detected, no prayer change");
                             }
+                            System.out.println("[AutoPray] ===================================");
                         }
                     }
                 } catch (Exception ex) {
-                    System.out.println("Auto-pray error: " + ex.getMessage());
+                    System.out.println("[AutoPray] Error: " + ex.getMessage());
+                    ex.printStackTrace();
                 }
             } catch (Exception ex) {
                 System.out.println(ex.getMessage());

@@ -10,10 +10,12 @@ import static net.runelite.client.plugins.microbot.util.Global.sleep;
 public class EnableSpecAction implements CombatAction {
     private final TerrorPkConfig config;
     private final int variant;
+    private final int delay;
 
-    public EnableSpecAction(TerrorPkConfig config, int variant) {
+    public EnableSpecAction(TerrorPkConfig config, int variant, int delay) {
         this.config = config;
         this.variant = variant;
+        this.delay = delay;
     }
 
     @Override
@@ -41,6 +43,10 @@ public class EnableSpecAction implements CombatAction {
             energy *= 2;
         }
         if (!Rs2Combat.getSpecState() && Rs2Combat.getSpecEnergy() >= energy) {
+            // Apply user-configured delay before clicking spec orb
+            if (delay > 0) {
+                sleep(delay);
+            }
             if (specType == SpecType.SINGLE) {
                 Rs2Combat.setSpecState(true, energy);
             } else {

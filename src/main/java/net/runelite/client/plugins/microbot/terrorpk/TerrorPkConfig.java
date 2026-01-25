@@ -291,6 +291,11 @@ public interface TerrorPkConfig extends Config {
         return "";
     }
 
+    @ConfigItem(keyName = "specDelayPrimary", name = "Spec Delay (ms)", description = "Delay in milliseconds between equipping spec weapon and clicking spec orb (primary)", position = 9, section = specialAttackPrimary)
+    default int specDelayPrimary() {
+        return 0;
+    }
+
     @ConfigSection(name = "Special Attack: Secondary", description = "Secondary special attack configuration", position = 11, closedByDefault = true)
     String specialAttackSecondary = "specialAttackSecondary";
 
@@ -334,6 +339,11 @@ public interface TerrorPkConfig extends Config {
         return "";
     }
 
+    @ConfigItem(keyName = "specDelaySecondary", name = "Spec Delay (ms)", description = "Delay in milliseconds between equipping spec weapon and clicking spec orb (secondary)", position = 9, section = specialAttackSecondary)
+    default int specDelaySecondary() {
+        return 0;
+    }
+
     @ConfigSection(name = "Special Attack: Tertiary", description = "Tertiary special attack configuration", position = 12, closedByDefault = true)
     String specialAttackTertiary = "specialAttackTertiary";
 
@@ -375,6 +385,11 @@ public interface TerrorPkConfig extends Config {
     @ConfigItem(keyName = "postActionSpecTertiary", name = "Trigger with Animation(s)", description = "Comma-separated list of animation IDs that trigger post-action for tertiary special attack", position = 8, section = specialAttackTertiary)
     default String postActionSpecTertiary() {
         return "";
+    }
+
+    @ConfigItem(keyName = "specDelayTertiary", name = "Spec Delay (ms)", description = "Delay in milliseconds between equipping spec weapon and clicking spec orb (tertiary)", position = 9, section = specialAttackTertiary)
+    default int specDelayTertiary() {
+        return 0;
     }
 
     @ConfigSection(name = "Tank", description = "Tank configuration", position = 13, closedByDefault = true)
@@ -464,9 +479,34 @@ public interface TerrorPkConfig extends Config {
     @ConfigSection(name = "Food", description = "Food usage", position = 16, closedByDefault = true)
     String foodSection = "foodSection";
 
-    @ConfigItem(keyName = "eatBestFood", name = "Eat Best Food", description = "Eats best food in inventory", position = 0, section = foodSection)
-    default Keybind eatBestFood() {
+    @ConfigItem(keyName = "singleEatHotkey", name = "Single Eat Hotkey", description = "Hotkey to eat a single food item.", position = 1, section = foodSection)
+    default Keybind singleEatHotkey() {
         return Keybind.NOT_SET;
+    }
+
+    @ConfigItem(keyName = "singleEatFood", name = "Single Eat Food", description = "Comma-separated list of food IDs or names for single eat.", position = 2, section = foodSection)
+    default String singleEatFood() {
+        return "";
+    }
+
+    @ConfigItem(keyName = "doubleEatHotkey", name = "Double Eat Hotkey", description = "Hotkey to perform a double-eat sequence (food->karambwan).", position = 3, section = foodSection)
+    default Keybind doubleEatHotkey() {
+        return Keybind.NOT_SET;
+    }
+
+    @ConfigItem(keyName = "doubleEatFirstFood", name = "Double Eat First Food ID", description = "Item ID of the first food for double eat (second is karambwan).", position = 4, section = foodSection)
+    default String doubleEatFirstFood() {
+        return "";
+    }
+
+    @ConfigItem(keyName = "tripleEatHotkey", name = "Triple Eat Hotkey", description = "Hotkey to perform a triple-eat sequence (food->brew->karambwan).", position = 5, section = foodSection)
+    default Keybind tripleEatHotkey() {
+        return Keybind.NOT_SET;
+    }
+
+    @ConfigItem(keyName = "tripleEatFirstFood", name = "Triple Eat First Food ID", description = "Item ID of the first food for triple eat (second is brew, third is karambwan).", position = 6, section = foodSection)
+    default String tripleEatFirstFood() {
+        return "";
     }
 
     @ConfigSection(name = "User Interface", description = "User interface controls", position = 17, closedByDefault = true)
