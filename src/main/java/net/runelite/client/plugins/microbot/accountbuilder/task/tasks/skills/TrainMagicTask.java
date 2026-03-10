@@ -1,17 +1,42 @@
 package net.runelite.client.plugins.microbot.accountbuilder.task.tasks.skills;
 
 import lombok.extern.slf4j.Slf4j;
+import net.runelite.api.ItemID;
 import net.runelite.api.Skill;
+import net.runelite.api.coords.WorldPoint;
 import net.runelite.client.plugins.microbot.Microbot;
 import net.runelite.client.plugins.microbot.accountbuilder.profile.AccountProfile;
 import net.runelite.client.plugins.microbot.accountbuilder.task.AbstractTask;
+import net.runelite.client.plugins.microbot.util.bank.Rs2Bank;
+import net.runelite.client.plugins.microbot.util.combat.Rs2Combat;
+import net.runelite.client.plugins.microbot.util.inventory.Rs2Inventory;
+import net.runelite.client.plugins.microbot.util.magic.Rs2CombatSpells;
+import net.runelite.client.plugins.microbot.util.magic.Rs2Magic;
+import net.runelite.client.plugins.microbot.util.npc.Rs2Npc;
+import net.runelite.client.plugins.microbot.util.npc.Rs2NpcModel;
+import net.runelite.client.plugins.microbot.util.player.Rs2Player;
+import net.runelite.client.plugins.microbot.util.walker.Rs2Walker;
 
 /**
- * Trains Magic to the target level by casting combat spells.
- * TODO: implement spell selection and combat targeting logic.
+ * Trains Magic to the target level by casting Wind Strike on chickens at Lumbridge.
+ *
+ * <p>Uses a bank loop to replenish air runes and mind runes when stocks run low.
+ * Wind Strike (1 air + 1 mind rune) is the only spell needed from level 1 to the
+ * target — higher strike spells can be substituted later when XP rates matter.
  */
 @Slf4j
 public class TrainMagicTask extends AbstractTask {
+
+    private static final WorldPoint CHICKEN_FARM = new WorldPoint(3236, 3295, 0);
+    private static final String CHICKEN_NPC = "Chicken";
+    private static final int WALK_THRESHOLD = 10;
+
+    // Replenish when stock drops below this threshold
+    private static final int RUNE_LOW_THRESHOLD = 50;
+    private static final int RUNE_WITHDRAW_AMOUNT = 500;
+
+    private enum State { CHECK_RUNES, BANKING, TRAINING }
+    private State state = State.CHECK_RUNES;
 
     private final int targetLevel;
 
@@ -32,9 +57,82 @@ public class TrainMagicTask extends AbstractTask {
 
     @Override
     public void execute() {
-        // TODO: select appropriate spell, walk to target area, cast on NPCs
         maybeIdle();
-        Microbot.log("TrainMagicTask: not yet implemented");
-        sleep(2000);
+
+        switch (state) {
+            case CHECK_RUNES:
+                if (runesOk()) {
+                    state = State.TRAINING;
+                } else {
+                    state = State.BANKING;
+                }
+                break;
+
+            case BANKING:
+                if (!Rs2Bank.walkToBankAndUseBank()) {
+                    sleep(800);
+                    return;
+                }
+                if (!Rs2Bank.isOpen()) {
+                    sleep(600);
+                    return;
+                }
+
+                // Verify bank has required runes
+                if (!Rs2Bank.hasItem(ItemID.AIR_RUNE) || !Rs2Bank.hasItem(ItemID.MIND_RUNE)) {
+                    Microbot.log("No air/mind runes in bank — cannot train magic.");
+                    sleep(10_000);
+                    return;
+                }
+
+                // Keep current runes, just top up
+                if (Rs2Inventory.count(ItemID.AIR_RUNE) < RUNE_LOW_THRESHOLD) {
+                    Rs2Bank.withdrawX(ItemID.AIR_RUNE, RUNE_WITHDRAW_AMOUNT);
+                    sleep(500);
+                }
+                if (Rs2Inventory.count(ItemID.MIND_RUNE) < RUNE_LOW_THRESHOLD) {
+                    Rs2Bank.withdrawX(ItemID.MIND_RUNE, RUNE_WITHDRAW_AMOUNT);
+                    sleep(500);
+                }
+
+                Rs2Bank.closeBank();
+                sleep(400);
+                state = State.CHECK_RUNES;
+                break;
+
+            case TRAINING:
+                if (!runesOk()) {
+                    state = State.BANKING;
+                    return;
+                }
+
+                if (Rs2Player.getWorldLocation().distanceTo(CHICKEN_FARM) > WALK_THRESHOLD) {
+                    Rs2Walker.walkTo(CHICKEN_FARM, 3);
+                    sleep(800);
+                    return;
+                }
+
+                if (Rs2Combat.inCombat()) {
+                    return;
+                }
+
+                Rs2NpcModel chicken = Rs2Npc.getNpc(CHICKEN_NPC);
+                if (chicken == null) {
+                    Microbot.log("No chicken found, repositioning...");
+                    Rs2Walker.walkTo(CHICKEN_FARM, 2);
+                    sleep(600);
+                    return;
+                }
+
+                Rs2Magic.castOn(Rs2CombatSpells.WIND_STRIKE.getMagicAction(), chicken);
+                log.debug("Cast Wind Strike, magic {}/{}", Microbot.getClient().getRealSkillLevel(Skill.MAGIC), targetLevel);
+                sleep(600);
+                break;
+        }
+    }
+
+    private boolean runesOk() {
+        return Rs2Inventory.count(ItemID.AIR_RUNE) >= RUNE_LOW_THRESHOLD
+                && Rs2Inventory.count(ItemID.MIND_RUNE) >= RUNE_LOW_THRESHOLD;
     }
 }
