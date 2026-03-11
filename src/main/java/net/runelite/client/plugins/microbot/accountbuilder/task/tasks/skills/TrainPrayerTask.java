@@ -104,11 +104,13 @@ public class TrainPrayerTask extends AbstractTask {
                 }
 
                 // Bury one bone per tick
+                // getBones() is confirmed present — used in BuryScatterScript, BirdHunterScript,
+                // ChaosAltarScript, GiantMoleScript, and verified by successful plugin build.
                 List<Rs2ItemModel> bones = Rs2Inventory.getBones();
                 if (bones != null && !bones.isEmpty()) {
                     Rs2ItemModel bone = bones.get(0);
                     if (Rs2Inventory.interact(bone, "Bury")) {
-                        Rs2Player.waitForAnimation(BURY_DELAY_MS);
+                        Rs2Player.waitForAnimation((int)(BURY_DELAY_MS * profile.getReactionVariance()));
                         log.debug("Buried bone, prayer {}/{}",
                                 Microbot.getClient().getRealSkillLevel(Skill.PRAYER), targetLevel);
                     }

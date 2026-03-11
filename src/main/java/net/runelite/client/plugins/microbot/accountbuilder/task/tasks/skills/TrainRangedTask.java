@@ -11,6 +11,7 @@ import net.runelite.client.plugins.microbot.util.bank.Rs2Bank;
 import net.runelite.client.plugins.microbot.util.combat.Rs2Combat;
 import net.runelite.client.plugins.microbot.util.equipment.Rs2Equipment;
 import net.runelite.client.plugins.microbot.util.inventory.Rs2Inventory;
+import net.runelite.client.plugins.microbot.util.inventory.Rs2ItemModel;
 import net.runelite.client.plugins.microbot.util.npc.Rs2Npc;
 import net.runelite.client.plugins.microbot.util.player.Rs2Player;
 import net.runelite.client.plugins.microbot.util.walker.Rs2Walker;
@@ -142,8 +143,16 @@ public class TrainRangedTask extends AbstractTask {
         }
     }
 
+    /**
+     * Returns true only when a ranged weapon (bow) AND ammo are equipped.
+     * Uses getName().contains("bow") so a melee weapon in the slot doesn't pass
+     * the check and accidentally train the wrong skill.
+     * Pattern sourced from BarrowsScript.java weapon type detection.
+     */
     private boolean gearReady() {
-        return Rs2Equipment.isWearing(EquipmentInventorySlot.WEAPON)
-                && Rs2Equipment.isWearing(EquipmentInventorySlot.AMMO);
+        Rs2ItemModel weapon = Rs2Equipment.get(EquipmentInventorySlot.WEAPON);
+        boolean hasRangedWeapon = weapon != null
+                && weapon.getName().toLowerCase().contains("bow");
+        return hasRangedWeapon && Rs2Equipment.isWearing(EquipmentInventorySlot.AMMO);
     }
 }

@@ -81,7 +81,13 @@ public class WaterfallQuestTask extends AbstractTask {
     private static final int ROPE_ROCK_OBJECT_ID   = 2419;
     private static final int DEAD_TREE_OBJECT_ID   = 2418;
     private static final int ROCKS_OBJECT_ID       = 2415;  // climb-down into dungeon
-    private static final int GOLRIE_CHEST_ID       = 2416;  // chest containing book (TODO: verify)
+    /**
+     * Object ID for the Giant Dwarf's chest inside the waterfall dungeon.
+     * Set to 0 (invalid) — must be verified in-game via Object Inspector before this
+     * state can run. The LOOT_CHEST state will not interact until this is corrected.
+     * TODO: verify against live client with shift-click Object Inspector.
+     */
+    private static final int GOLRIE_CHEST_ID       = 0;
     private static final int GLARIALS_TOMB_ID      = 2406;  // tombstone entrance
     private static final int BAXTORIAN_ALTAR_ID    = 2436;  // final quest altar (TODO: verify)
 
@@ -160,10 +166,26 @@ public class WaterfallQuestTask extends AbstractTask {
         switch (state) {
 
             case GATHER_SUPPLIES:
-                // Check for rope; other items are obtained mid-quest
+                // Verify all required supplies are present before starting the quest.
+                // TODO: implement auto-banking to fetch missing supplies.
+                boolean missingSupplies = false;
                 if (!Rs2Inventory.contains(ROPE)) {
-                    // TODO: bank for rope, 6 air runes, 6 earth runes, 6 water runes
-                    Microbot.log("WaterfallQuest: Need rope in inventory — please bank for supplies.");
+                    Microbot.log("WaterfallQuest: Missing rope.");
+                    missingSupplies = true;
+                }
+                if (Rs2Inventory.count(ItemID.AIR_RUNE) < 6) {
+                    Microbot.log("WaterfallQuest: Need at least 6 air runes.");
+                    missingSupplies = true;
+                }
+                if (Rs2Inventory.count(ItemID.EARTH_RUNE) < 6) {
+                    Microbot.log("WaterfallQuest: Need at least 6 earth runes.");
+                    missingSupplies = true;
+                }
+                if (Rs2Inventory.count(ItemID.WATER_RUNE) < 6) {
+                    Microbot.log("WaterfallQuest: Need at least 6 water runes.");
+                    missingSupplies = true;
+                }
+                if (missingSupplies) {
                     sleep(5000);
                     return;
                 }
@@ -270,9 +292,16 @@ public class WaterfallQuestTask extends AbstractTask {
 
             case LOOT_CHEST:
                 // TODO: search dungeon chest for Book on Baxtorian
-                // TODO: verify GOLRIE_CHEST_ID (Giant Dwarf's chest)
                 if (Rs2Inventory.contains(BOOK_ON_BAXTORIAN)) {
                     state = State.WALK_TO_GOLRIE;
+                    return;
+                }
+                // GOLRIE_CHEST_ID is 0 (unverified) — do not interact until the real ID is
+                // confirmed in-game via the Object Inspector (shift-click the chest).
+                if (GOLRIE_CHEST_ID == 0) {
+                    Microbot.log("WaterfallQuest: LOOT_CHEST blocked — GOLRIE_CHEST_ID not yet verified. " +
+                            "Use the Object Inspector to find the correct ID and update the constant.");
+                    sleep(5000);
                     return;
                 }
                 if (Rs2GameObject.interact(GOLRIE_CHEST_ID, "Search")) {
@@ -349,16 +378,25 @@ public class WaterfallQuestTask extends AbstractTask {
                 break;
 
             case ENTER_WATERFALL_DUNGEON:
+                // Advance to COMPLETE_ALTAR only once underground (plane 0 and near altar,
+                // or any plane != 0 which indicates the dungeon was entered successfully).
+                // This prevents the state advancing before the player has actually entered.
+                int plane = Microbot.getClientThread()
+                        .runOnClientThreadOptional(() -> Microbot.getClient().getTopLevelWorldView().getPlane())
+                        .orElse(0);
+                if (Rs2Player.getWorldLocation().distanceTo(DUNGEON_ALTAR) <= 20 || plane != 0) {
+                    state = State.COMPLETE_ALTAR;
+                    return;
+                }
                 // Wear Glarial's Amulet to enter
                 if (Rs2Inventory.contains(GLARIALS_AMULET)) {
                     Rs2Inventory.interact(GLARIALS_AMULET, "Wear");
                     sleep(400);
                 }
-                // TODO: dive into waterfall — exact object ID needed
+                // TODO: dive into waterfall — exact object ID needed; use Object Inspector in-game
                 // Rs2GameObject.interact(WATERFALL_DIVING_ID, "Dive-in");
-                Microbot.log("WaterfallQuest: Entering waterfall dungeon...");
+                Microbot.log("WaterfallQuest: Waiting to enter waterfall dungeon — object ID needed.");
                 sleep(1000);
-                state = State.COMPLETE_ALTAR;
                 break;
 
             case COMPLETE_ALTAR:

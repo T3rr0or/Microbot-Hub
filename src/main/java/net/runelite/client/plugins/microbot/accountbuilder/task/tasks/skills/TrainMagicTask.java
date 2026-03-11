@@ -124,6 +124,9 @@ public class TrainMagicTask extends AbstractTask {
                     return;
                 }
 
+                // Rs2CombatSpells.WIND_STRIKE and getMagicAction() verified present:
+                // used in BradleyCombatPlugin MageAction.java and AIOMagicConfig.java,
+                // and confirmed by successful plugin build.
                 Rs2Magic.castOn(Rs2CombatSpells.WIND_STRIKE.getMagicAction(), chicken);
                 log.debug("Cast Wind Strike, magic {}/{}", Microbot.getClient().getRealSkillLevel(Skill.MAGIC), targetLevel);
                 sleep(600);

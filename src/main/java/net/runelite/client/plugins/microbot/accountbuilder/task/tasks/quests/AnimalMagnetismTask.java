@@ -182,7 +182,10 @@ public class AnimalMagnetismTask extends AbstractTask {
                     sleep(800);
                     return;
                 }
-                // TODO: pick up undead chicken — might require "Catch" or "Talk-to" interaction
+                // TODO: verify correct interaction name against live client.
+                // Undead chickens are not standard chickens — "Catch" may not be a valid
+                // right-click option. Check the NPC right-click menu in-game and update
+                // the action string (may be "Talk-to", "Pick-up", or a quest-specific option).
                 Rs2Npc.interact(NPC_UNDEAD_CHICKEN, "Catch");
                 sleep(1000);
                 break;
