@@ -11,6 +11,7 @@ import net.runelite.client.plugins.microbot.accountbuilder.task.TaskExecutor;
 import net.runelite.client.plugins.microbot.accountbuilder.task.tasks.quests.AnimalMagnetismTask;
 import net.runelite.client.plugins.microbot.accountbuilder.task.tasks.quests.WaterfallQuestTask;
 import net.runelite.client.plugins.microbot.accountbuilder.task.tasks.skills.*;
+import net.runelite.client.plugins.microbot.accountbuilder.task.tasks.TutorialIslandTask;
 
 import java.util.Arrays;
 import java.util.List;
@@ -67,6 +68,8 @@ public class AccountBuilderScript extends Script {
 
     private List<Task> buildTaskList(AccountBuilderConfig config) {
         return Arrays.asList(
+                // Phase 0 — Tutorial Island
+                new TutorialIslandTask(profile),
                 // Phase 1 — Foundation
                 new WaterfallQuestTask(profile),
                 new AnimalMagnetismTask(profile),

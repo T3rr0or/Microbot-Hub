@@ -33,6 +33,25 @@ public abstract class AbstractTask implements Task {
         }
     }
 
+    /**
+     * Block until {@code condition} returns true or the timeout elapses.
+     * Polls every 100 ms. Default timeout: 10 seconds.
+     */
+    protected void sleepUntil(java.util.function.BooleanSupplier condition) {
+        sleepUntil(condition, 10_000);
+    }
+
+    /**
+     * Block until {@code condition} returns true or {@code timeoutMs} elapses.
+     * Polls every 100 ms.
+     */
+    protected void sleepUntil(java.util.function.BooleanSupplier condition, long timeoutMs) {
+        long deadline = System.currentTimeMillis() + timeoutMs;
+        while (!condition.getAsBoolean() && System.currentTimeMillis() < deadline) {
+            sleepRaw(100);
+        }
+    }
+
     /** Optionally insert a random idle pause based on the account profile. */
     protected void maybeIdle() {
         if (Math.random() < profile.getIdleChance()) {
