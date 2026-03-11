@@ -15,8 +15,8 @@ public class TrainDefenceTask extends AbstractMeleeTask {
 
     private static final WorldPoint BARBARIAN_VILLAGE = new WorldPoint(3082, 3422, 0);
 
-    public TrainDefenceTask(int targetLevel, AccountProfile profile) {
-        super(targetLevel, profile);
+    public TrainDefenceTask(int targetLevel, AccountProfile profile, int eatAtPercent) {
+        super(targetLevel, profile, eatAtPercent);
     }
 
     @Override public String getName()                    { return "Train Defence to " + targetLevel; }

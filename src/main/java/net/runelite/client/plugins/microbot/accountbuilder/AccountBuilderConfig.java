@@ -108,12 +108,22 @@ public interface AccountBuilderConfig extends Config {
     )
     default boolean isMember() { return true; }
 
+    @Range(min = 10, max = 90)
+    @ConfigItem(
+            keyName = "eatAtPercent",
+            name = "Eat at HP %",
+            description = "Eat food when HP drops below this percentage during combat",
+            section = general,
+            position = 1
+    )
+    default int eatAtPercent() { return 55; }
+
     @ConfigItem(
             keyName = "enableBreaks",
             name = "Enable AFK Breaks",
             description = "Take randomized AFK breaks between tasks",
             section = general,
-            position = 1
+            position = 2
     )
     default boolean enableBreaks() { return true; }
 
@@ -122,7 +132,7 @@ public interface AccountBuilderConfig extends Config {
             name = "Log Level",
             description = "How much to log to in-game chat",
             section = general,
-            position = 2
+            position = 3
     )
     default LogLevel logLevel() { return LogLevel.INFO; }
 }

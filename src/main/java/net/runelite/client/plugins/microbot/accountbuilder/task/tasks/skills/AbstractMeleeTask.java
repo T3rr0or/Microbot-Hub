@@ -25,8 +25,12 @@ import net.runelite.client.plugins.microbot.util.walker.Rs2Walker;
  *
  * <p>Handles:
  * <ul>
+ *   <li><b>HP safety</b> — eats food when HP drops below the configured threshold;
+ *       transitions to BANKING when inventory food is exhausted.</li>
  *   <li><b>Gear acquisition</b> — checks the bank for the best available weapon from a
  *       priority list (rune scimitar → bronze sword) and wields it.</li>
+ *   <li><b>Food restocking</b> — withdraws food during every bank visit when supply
+ *       drops below {@link #MIN_FOOD}.</li>
  *   <li><b>Attack style auto-swap</b> — switches the combat tab to the style that gives
  *       XP in {@link #getSkill()}. For defence, tries the 4th style (sword "Defensive")
  *       and falls back to the 3rd (scimitar "Block"), both of which grant Defence XP.</li>
@@ -64,10 +68,12 @@ public abstract class AbstractMeleeTask extends AbstractTask {
     private State state = State.CHECK_GEAR;
 
     protected final int targetLevel;
+    private final int eatAtPercent;
 
-    protected AbstractMeleeTask(int targetLevel, AccountProfile profile) {
+    protected AbstractMeleeTask(int targetLevel, AccountProfile profile, int eatAtPercent) {
         super(profile);
-        this.targetLevel = targetLevel;
+        this.targetLevel  = targetLevel;
+        this.eatAtPercent = eatAtPercent;
     }
 
     // ── Subclass contract ─────────────────────────────────────────────────
@@ -111,6 +117,7 @@ public abstract class AbstractMeleeTask extends AbstractTask {
                 if (!Rs2Bank.walkToBankAndUseBank()) { sleep(800); return; }
                 if (!Rs2Bank.isOpen()) { sleep(600); return; }
 
+                // Ensure a melee weapon is available
                 if (!hasMeleeWeaponEquipped()) {
                     String weapon = findWeaponInBank();
                     if (weapon == null) {
@@ -120,6 +127,15 @@ public abstract class AbstractMeleeTask extends AbstractTask {
                     }
                     if (!Rs2Inventory.hasItem(weapon)) {
                         Rs2Bank.withdrawOne(weapon);
+                        sleep(600);
+                    }
+                }
+
+                // Restock food if running low
+                if (needsFood()) {
+                    String food = findFoodInBank();
+                    if (food != null) {
+                        Rs2Bank.withdrawX(food, FOOD_WITHDRAW_AMOUNT);
                         sleep(600);
                     }
                 }
@@ -141,6 +157,15 @@ public abstract class AbstractMeleeTask extends AbstractTask {
 
             case TRAINING:
                 if (!gearReady()) { state = State.BANKING; return; }
+
+                // Eat before engaging — avoid dying mid-fight
+                eatIfNeeded(eatAtPercent);
+
+                // No food left: head to bank before HP becomes critical
+                if (Rs2Inventory.getInventoryFood().isEmpty()) {
+                    state = State.BANKING;
+                    return;
+                }
 
                 ensureAttackStyle();
 

@@ -12,8 +12,8 @@ public class TrainStrengthTask extends AbstractMeleeTask {
 
     private static final WorldPoint COW_FIELD = new WorldPoint(3255, 3272, 0);
 
-    public TrainStrengthTask(int targetLevel, AccountProfile profile) {
-        super(targetLevel, profile);
+    public TrainStrengthTask(int targetLevel, AccountProfile profile, int eatAtPercent) {
+        super(targetLevel, profile, eatAtPercent);
     }
 
     @Override public String getName()                    { return "Train Strength to " + targetLevel; }

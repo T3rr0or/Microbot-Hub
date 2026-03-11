@@ -20,6 +20,8 @@ import net.runelite.client.plugins.microbot.util.walker.Rs2Walker;
  * Trains Ranged to the target level by shooting chickens at Lumbridge.
  * Verifies a ranged weapon and ammo are equipped before attacking; banks
  * for a shortbow and bronze arrows if either slot is empty.
+ * Eats food from inventory when HP drops below the configured threshold and
+ * banks to restock when food runs out.
  */
 @Slf4j
 public class TrainRangedTask extends AbstractTask {
@@ -36,10 +38,12 @@ public class TrainRangedTask extends AbstractTask {
     private State state = State.CHECK_GEAR;
 
     private final int targetLevel;
+    private final int eatAtPercent;
 
-    public TrainRangedTask(int targetLevel, AccountProfile profile) {
+    public TrainRangedTask(int targetLevel, AccountProfile profile, int eatAtPercent) {
         super(profile);
-        this.targetLevel = targetLevel;
+        this.targetLevel  = targetLevel;
+        this.eatAtPercent = eatAtPercent;
     }
 
     @Override
@@ -66,16 +70,10 @@ public class TrainRangedTask extends AbstractTask {
                 break;
 
             case BANKING:
-                if (!Rs2Bank.walkToBankAndUseBank()) {
-                    sleep(800);
-                    return;
-                }
-                if (!Rs2Bank.isOpen()) {
-                    sleep(600);
-                    return;
-                }
+                if (!Rs2Bank.walkToBankAndUseBank()) { sleep(800); return; }
+                if (!Rs2Bank.isOpen()) { sleep(600); return; }
 
-                // Equip bow from bank if we don't have one
+                // Withdraw bow if not already equipped
                 if (!Rs2Equipment.isWearing(EquipmentInventorySlot.WEAPON)) {
                     if (!Rs2Inventory.hasItem(BOW_NAME)) {
                         if (!Rs2Bank.hasItem(BOW_NAME)) {
@@ -100,10 +98,18 @@ public class TrainRangedTask extends AbstractTask {
                     sleep(600);
                 }
 
+                // Restock food if running low
+                if (needsFood()) {
+                    String food = findFoodInBank();
+                    if (food != null) {
+                        Rs2Bank.withdrawX(food, FOOD_WITHDRAW_AMOUNT);
+                        sleep(600);
+                    }
+                }
+
                 Rs2Bank.closeBank();
                 sleep(400);
 
-                // Wield from inventory
                 if (Rs2Inventory.hasItem(BOW_NAME)) {
                     Rs2Inventory.interact(BOW_NAME, "Wield");
                     sleep(400);
@@ -117,8 +123,11 @@ public class TrainRangedTask extends AbstractTask {
                 break;
 
             case TRAINING:
-                // Re-check gear each iteration in case arrows run out
-                if (!gearReady()) {
+                if (!gearReady()) { state = State.BANKING; return; }
+
+                eatIfNeeded(eatAtPercent);
+
+                if (Rs2Inventory.getInventoryFood().isEmpty()) {
                     state = State.BANKING;
                     return;
                 }
@@ -129,15 +138,12 @@ public class TrainRangedTask extends AbstractTask {
                     return;
                 }
 
-                if (Rs2Combat.inCombat()) {
-                    return;
-                }
+                if (Rs2Combat.inCombat()) return;
 
                 boolean attacked = Rs2Npc.attack(CHICKEN_NPC);
                 if (!attacked) {
                     Rs2Walker.walkTo(CHICKEN_FARM, 2);
                 }
-
                 sleep(600);
                 break;
         }
@@ -147,7 +153,6 @@ public class TrainRangedTask extends AbstractTask {
      * Returns true only when a ranged weapon (bow) AND ammo are equipped.
      * Uses getName().contains("bow") so a melee weapon in the slot doesn't pass
      * the check and accidentally train the wrong skill.
-     * Pattern sourced from BarrowsScript.java weapon type detection.
      */
     private boolean gearReady() {
         Rs2ItemModel weapon = Rs2Equipment.get(EquipmentInventorySlot.WEAPON);

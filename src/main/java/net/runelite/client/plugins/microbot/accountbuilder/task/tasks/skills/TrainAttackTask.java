@@ -12,8 +12,8 @@ public class TrainAttackTask extends AbstractMeleeTask {
 
     private static final WorldPoint CHICKEN_FARM = new WorldPoint(3236, 3295, 0);
 
-    public TrainAttackTask(int targetLevel, AccountProfile profile) {
-        super(targetLevel, profile);
+    public TrainAttackTask(int targetLevel, AccountProfile profile, int eatAtPercent) {
+        super(targetLevel, profile, eatAtPercent);
     }
 
     @Override public String getName()                    { return "Train Attack to " + targetLevel; }
