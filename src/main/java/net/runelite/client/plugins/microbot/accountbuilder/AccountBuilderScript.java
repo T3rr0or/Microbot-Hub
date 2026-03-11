@@ -79,15 +79,16 @@ public class AccountBuilderScript extends Script {
         }
 
         // Phase 2 — Skill training (F2P compatible)
-        tasks.add(new TrainAttackTask(30, profile));
-        tasks.add(new TrainStrengthTask(40, profile));
-        tasks.add(new TrainDefenceTask(40, profile));
-        tasks.add(new TrainHitpointsTask(50, profile));
-        tasks.add(new TrainRangedTask(40, profile));
+        // Tasks whose target level == 1 complete immediately (skill is always >= 1).
+        tasks.add(new TrainAttackTask(config.targetAttack(), profile));
+        tasks.add(new TrainStrengthTask(config.targetStrength(), profile));
+        tasks.add(new TrainDefenceTask(config.targetDefence(), profile));
+        tasks.add(new TrainHitpointsTask(config.targetHitpoints(), profile));
+        tasks.add(new TrainRangedTask(config.targetRanged(), profile));
 
         // Phase 3 — Utility Skills (F2P compatible)
-        tasks.add(new TrainPrayerTask(43, profile));
-        tasks.add(new TrainMagicTask(55, profile));
+        tasks.add(new TrainPrayerTask(config.targetPrayer(), profile));
+        tasks.add(new TrainMagicTask(config.targetMagic(), profile));
 
         return tasks;
     }
