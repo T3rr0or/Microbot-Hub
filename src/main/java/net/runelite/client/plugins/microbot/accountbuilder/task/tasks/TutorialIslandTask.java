@@ -62,9 +62,14 @@ import static net.runelite.client.plugins.microbot.util.settings.Rs2Settings.*;
 public class TutorialIslandTask extends AbstractTask {
 
     // ── Widget IDs ────────────────────────────────────────────────────────
-    private static final int NAME_CREATION_WIDGET   = 558;
+    private static final int NAME_CREATION_WIDGET      = 558;
     private static final int CHARACTER_CREATION_WIDGET = 679;
     private static final int[] CHARACTER_CREATION_ARROWS = {13,17,21,25,29,33,37,44,48,52,56,60};
+
+    // "Want more bank space?" upsell popup shown when the bank is first opened (group 289)
+    private static final int BANK_UPSELL_WIDGET        = 289;
+    // Account guide tutorial overlay shown during the banker section (group 310)
+    private static final int ACCOUNT_GUIDE_WIDGET      = 310;
 
     // ── State ─────────────────────────────────────────────────────────────
     private enum Status {
@@ -90,9 +95,8 @@ public class TutorialIslandTask extends AbstractTask {
 
     @Override
     public boolean isComplete() {
-        // Varbit 281 == 1000 means the player chose to go to the mainland at the end.
-        // Also treat as complete if the player is already on the mainland
-        // (account was created before AccountBuilder was enabled).
+        // Microbot.getVarbitPlayerValue() reads from the client's cached varbit array and is
+        // safe to call from the scheduler thread (consistent with other AbstractTask subclasses).
         return Microbot.getVarbitPlayerValue(281) == 1000 || isOnMainland();
     }
 
@@ -131,6 +135,16 @@ public class TutorialIslandTask extends AbstractTask {
         }
     }
 
+    // ── Timing helper ─────────────────────────────────────────────────────
+
+    /**
+     * Sleep for {@code base} ms scaled by {@link AccountProfile#getReactionVariance()},
+     * plus up to {@code jitter} ms of additional randomness via {@link Rs2Random#waitEx}.
+     */
+    private void waitEx(int base, int jitter) {
+        Rs2Random.waitEx((int)(base * profile.getReactionVariance()), jitter);
+    }
+
     // ── Status calculation ────────────────────────────────────────────────
 
     private Status calculateStatus() {
@@ -138,15 +152,15 @@ public class TutorialIslandTask extends AbstractTask {
         if (isCharacterCreationVisible()) return Status.CHARACTER;
 
         int v = Microbot.getVarbitPlayerValue(281);
-        if (v < 10)                        return Status.GETTING_STARTED;
-        if (v < 120)                       return Status.SURVIVAL_GUIDE;
-        if (v < 200)                       return Status.COOKING_GUIDE;
-        if (v <= 250)                      return Status.QUEST_GUIDE;
-        if (v <= 360)                      return Status.MINING_GUIDE;
-        if (v < 510)                       return Status.COMBAT_GUIDE;
-        if (v < 540)                       return Status.BANKER_GUIDE;
-        if (v < 610)                       return Status.PRAYER_GUIDE;
-        if (v < 1000)                      return Status.MAGE_GUIDE;
+        if (v < 10)   return Status.GETTING_STARTED;
+        if (v < 120)  return Status.SURVIVAL_GUIDE;
+        if (v < 200)  return Status.COOKING_GUIDE;
+        if (v <= 250) return Status.QUEST_GUIDE;
+        if (v <= 360) return Status.MINING_GUIDE;
+        if (v < 510)  return Status.COMBAT_GUIDE;
+        if (v < 540)  return Status.BANKER_GUIDE;
+        if (v < 610)  return Status.PRAYER_GUIDE;
+        if (v < 1000) return Status.MAGE_GUIDE;
         return Status.FINISHED;
     }
 
@@ -180,28 +194,28 @@ public class TutorialIslandTask extends AbstractTask {
 
         if (!current.isEmpty()) {
             Rs2Widget.clickWidget(NAME_CREATION_WIDGET, 7);
-            Rs2Random.waitEx(1200, 300);
+            waitEx(1200, 300);
             for (int i = 0; i < current.length(); i++) {
                 Rs2Keyboard.keyPress(KeyEvent.VK_BACK_SPACE);
-                Rs2Random.waitEx(600, 100);
+                waitEx(600, 100);
             }
             return;
         }
 
         String name = new NameGenerator(Rs2Random.between(7, 10)).getName();
         Rs2Widget.clickWidget(NAME_CREATION_WIDGET, 7);
-        Rs2Random.waitEx(1200, 300);
+        waitEx(1200, 300);
         Rs2Keyboard.typeString(name);
-        Rs2Random.waitEx(2400, 600);
+        waitEx(2400, 600);
         Rs2Widget.clickWidget(NAME_CREATION_WIDGET, 18);
-        Rs2Random.waitEx(4800, 600);
+        waitEx(4800, 600);
 
         Widget response = Rs2Widget.getWidget(NAME_CREATION_WIDGET, 13);
         if (response != null) {
             String cleaned = Rs2UiHelper.stripColTags(response.getText());
             if (cleaned.startsWith("Great! The display name " + name + " is available")) {
                 Rs2Widget.clickWidget(NAME_CREATION_WIDGET, 19);
-                Rs2Random.waitEx(4800, 600);
+                waitEx(4800, 600);
                 sleepUntil(() -> !isNameCreationVisible());
             }
         }
@@ -213,15 +227,20 @@ public class TutorialIslandTask extends AbstractTask {
 
             if (Rs2Random.diceFractional(0.25)) {
                 Widget pronounWidget = Rs2Widget.getWidget(CHARACTER_CREATION_WIDGET, 72);
+                if (pronounWidget == null) return;
+
                 Widget currentPronoun = Arrays.stream(pronounWidget.getDynamicChildren())
                         .filter(w -> w.getText().toLowerCase().contains("he/him")
                                   || w.getText().toLowerCase().contains("they/them")
                                   || w.getText().toLowerCase().contains("she/her"))
                         .findFirst().orElse(null);
                 Rs2Widget.clickWidget(pronounWidget);
-                Rs2Random.waitEx(1200, 300);
+                waitEx(1200, 300);
                 sleepUntil(() -> Rs2Widget.isWidgetVisible(CHARACTER_CREATION_WIDGET, 76));
-                Widget[] options = Rs2Widget.getWidget(CHARACTER_CREATION_WIDGET, 78).getDynamicChildren();
+
+                Widget optionsContainer = Rs2Widget.getWidget(CHARACTER_CREATION_WIDGET, 78);
+                if (optionsContainer == null) return;
+                Widget[] options = optionsContainer.getDynamicChildren();
 
                 Widget choice = null;
                 if (currentPronoun != null) {
@@ -237,22 +256,23 @@ public class TutorialIslandTask extends AbstractTask {
                 }
                 if (choice != null) {
                     Rs2Widget.clickWidget(choice);
-                    Rs2Random.waitEx(1200, 300);
+                    waitEx(1200, 300);
                     sleepUntil(() -> !Rs2Widget.isWidgetVisible(CHARACTER_CREATION_WIDGET, 76));
                 }
             }
 
             Rs2Widget.clickWidget(CHARACTER_CREATION_WIDGET, 74);
-            Rs2Random.waitEx(1200, 300);
+            waitEx(1200, 300);
             sleepUntil(() -> !isCharacterCreationVisible());
         }
 
         int idx = (int)(Math.random() * CHARACTER_CREATION_ARROWS.length);
         int item = CHARACTER_CREATION_ARROWS[idx] + (Math.random() < 0.5 ? 2 : 3);
         Widget widget = Rs2Widget.getWidget(CHARACTER_CREATION_WIDGET, item);
+        if (widget == null) return;
         for (int i = 0; i < Rs2Random.between(1, 6); i++) {
             Rs2Widget.clickWidget(widget.getId());
-            Rs2Random.waitEx(300, 50);
+            waitEx(300, 50);
         }
     }
 
@@ -267,10 +287,10 @@ public class TutorialIslandTask extends AbstractTask {
 
             if (hasFemaleSelected) {
                 Rs2Widget.clickWidget(maleWidget);
-                Rs2Random.waitEx(1200, 300);
+                waitEx(1200, 300);
             } else if (hasMaleSelected) {
                 Rs2Widget.clickWidget(femaleWidget);
-                Rs2Random.waitEx(1200, 300);
+                waitEx(1200, 300);
             }
         }
         hasSelectedGender = true;
@@ -292,33 +312,32 @@ public class TutorialIslandTask extends AbstractTask {
             if (!toggledSettings) {
                 Rs2Widget.clickWidget(164, 41);
                 toggledSettings = true;
-                Rs2Random.waitEx(1200, 300);
+                waitEx(1200, 300);
                 return;
             }
-            // Mute music
             if (!toggledMusic) {
                 turnOffMusic();
                 toggledMusic = true;
-                Rs2Random.waitEx(1200, 300);
+                waitEx(1200, 300);
                 return;
             }
             if (!isHideRoofsEnabled()) {
                 hideRoofs(false);
-                Rs2Random.waitEx(1200, 300);
+                waitEx(1200, 300);
                 return;
             }
             if (!isDropShiftSettingEnabled()) {
                 enableDropShiftSetting(false);
-                Rs2Random.waitEx(1200, 300);
+                waitEx(1200, 300);
                 return;
             }
             if (isLevelUpNotificationsEnabled()) {
                 disableLevelUpNotifications(true);
-                Rs2Random.waitEx(1200, 300);
+                waitEx(1200, 300);
                 return;
             }
             Rs2Camera.setZoom(Rs2Random.between(400, 450));
-            Rs2Random.waitEx(300, 100);
+            waitEx(300, 100);
             Rs2Camera.setPitch(280);
             sleepUntil(() -> Rs2Camera.getPitch() > 250);
             if (Rs2Npc.interact(npc, "Talk-to")) {
@@ -344,16 +363,16 @@ public class TutorialIslandTask extends AbstractTask {
                 sleepUntil(Rs2Dialogue::isInDialogue);
             }
         } else if (v < 40) {
-            Rs2Random.waitEx(1200, 300);
+            waitEx(1200, 300);
             var widget = Rs2Widget.findWidget("Inventory", true);
             Rs2Widget.clickWidget(widget);
-            Rs2Random.waitEx(1200, 300);
+            waitEx(1200, 300);
         } else if (v < 50) {
             fishShrimp();
         } else if (v < 70) {
             var widget = Rs2Widget.findWidget("Skills", true);
             Rs2Widget.clickWidget(widget);
-            Rs2Random.waitEx(1200, 300);
+            waitEx(1200, 300);
             if (Rs2Npc.interact(npc, "talk-to")) {
                 sleepUntil(Rs2Dialogue::isInDialogue);
             }
@@ -376,7 +395,7 @@ public class TutorialIslandTask extends AbstractTask {
         int v = Microbot.getVarbitPlayerValue(281);
 
         if (v == 120) {
-            Rs2Random.waitEx(1200, 300);
+            waitEx(1200, 300);
             Rs2Keyboard.keyPress(KeyEvent.VK_ESCAPE);
             Rs2GameObject.interact(ObjectID.GATE_9470, "Open");
             sleepUntil(() -> Microbot.getVarbitPlayerValue(281) != 120);
@@ -394,7 +413,7 @@ public class TutorialIslandTask extends AbstractTask {
                 Rs2GameObject.interact(9736, "Use");
                 sleepUntil(() -> Rs2Inventory.contains("Bread"));
             } else if (Rs2Inventory.contains("Bread")) {
-                if (Rs2GameObject.interact(9710, "Open")) Rs2Random.waitEx(2400, 100);
+                if (Rs2GameObject.interact(9710, "Open")) waitEx(2400, 100);
             }
         }
     }
@@ -406,19 +425,19 @@ public class TutorialIslandTask extends AbstractTask {
         if (v == 200 || v == 210) {
             Rs2Walker.walkTo(new WorldPoint(Rs2Random.between(3083, 3086), Rs2Random.between(3127, 3129), 0));
             Rs2GameObject.interact(9716, "Open");
-            Rs2Random.waitEx(1200, 300);
+            waitEx(1200, 300);
         } else if (v == 220 || v == 240) {
             Rs2Npc.interact(npc, "Talk-to");
             sleepUntil(Rs2Dialogue::isInDialogue);
         } else if (v == 230) {
             var widget = Rs2Widget.findWidget("Quest List", true);
             Rs2Widget.clickWidget(widget);
-            Rs2Random.waitEx(1200, 300);
+            waitEx(1200, 300);
         } else {
             Rs2Tab.switchTo(InterfaceTab.INVENTORY);
-            Rs2Random.waitEx(600, 100);
+            waitEx(600, 100);
             Rs2GameObject.interact(9726, "Climb-down");
-            Rs2Random.waitEx(2400, 100);
+            waitEx(2400, 100);
         }
     }
 
@@ -439,7 +458,7 @@ public class TutorialIslandTask extends AbstractTask {
                 Rs2GameObject.interact("Anvil", "Smith");
                 sleepUntil(Rs2Widget::isSmithingWidgetOpen);
                 Rs2Widget.clickWidget(312, 9);
-                Rs2Random.waitEx(1200, 300);
+                waitEx(1200, 300);
                 sleepUntil(() -> Rs2Inventory.contains("Bronze dagger") && !Rs2Player.isAnimating(1800));
                 return;
             }
@@ -478,17 +497,17 @@ public class TutorialIslandTask extends AbstractTask {
             if (isInDialogue()) { clickContinue(); return; }
             var widget = Rs2Widget.findWidget("Worn Equipment", true);
             Rs2Widget.clickWidget(widget);
-            Rs2Random.waitEx(1200, 300);
+            waitEx(1200, 300);
             Rs2Widget.clickWidget(387, 1);
             sleepUntil(() -> Rs2Widget.getWidget(84, 1) != null);
-            Rs2Random.waitEx(1200, 300);
+            waitEx(1200, 300);
             Rs2Widget.clickWidget("Bronze dagger");
-            Rs2Random.waitEx(2400, 300);
+            waitEx(2400, 300);
             if (Rs2Widget.isWidgetVisible(84, 3)) {
                 Widget opts = Rs2Widget.getWidget(84, 3);
                 for (Widget child : opts.getDynamicChildren()) {
                     if (child.getActions() != null && Arrays.stream(child.getActions()).anyMatch(a -> a != null && a.equalsIgnoreCase("close"))) {
-                        Rs2Widget.clickWidget(child); Rs2Random.waitEx(1200, 300); break;
+                        Rs2Widget.clickWidget(child); waitEx(1200, 300); break;
                     }
                 }
             }
@@ -502,9 +521,9 @@ public class TutorialIslandTask extends AbstractTask {
             if (Rs2Player.getInteracting() != null && Rs2Player.getInteracting().getName() != null
                     && Rs2Player.getInteracting().getName().equalsIgnoreCase("giant rat")) return;
             Rs2Inventory.wield("Shortbow");
-            Rs2Random.waitEx(600, 100);
+            waitEx(600, 100);
             Rs2Inventory.wield("Bronze arrow");
-            Rs2Random.waitEx(600, 100);
+            waitEx(600, 100);
             if (Rs2Random.between(1, 5) == 2) Rs2Walker.walkTo(new WorldPoint(3110, 9523, 0), 4);
             Rs2Player.waitForWalking();
             Rs2Npc.attack("Giant rat");
@@ -517,15 +536,15 @@ public class TutorialIslandTask extends AbstractTask {
             if (Rs2Equipment.isWearing("Bronze sword")) {
                 var combatWidget = Rs2Widget.findWidget("Combat Options", true);
                 Rs2Widget.clickWidget(combatWidget);
-                Rs2Random.waitEx(1200, 300);
+                waitEx(1200, 300);
                 Rs2Walker.walkTo(new WorldPoint(3105, 9517, 0), 3);
                 Rs2Player.waitForWalking();
                 Rs2Npc.attack("Giant rat");
             } else {
                 Rs2Tab.switchTo(InterfaceTab.INVENTORY);
-                Rs2Random.waitEx(600, 100);
+                waitEx(600, 100);
                 Rs2Inventory.wield("Bronze sword");
-                Rs2Random.waitEx(600, 100);
+                waitEx(600, 100);
                 Rs2Inventory.wield("Wooden shield");
             }
         }
@@ -539,11 +558,11 @@ public class TutorialIslandTask extends AbstractTask {
             Rs2GameObject.interact(ObjectID.BANK_BOOTH_10083);
             sleepUntil(() -> Microbot.getVarbitPlayerValue(281) != 510);
         } else if (v == 520) {
-            if (Rs2Widget.isWidgetVisible(289, 5)) {
-                Widget opts = Rs2Widget.getWidget(289, 4);
+            if (Rs2Widget.isWidgetVisible(BANK_UPSELL_WIDGET, 5)) {
+                Widget opts = Rs2Widget.getWidget(BANK_UPSELL_WIDGET, 4);
                 for (Widget child : opts.getDynamicChildren()) {
                     if (child.getText() != null && child.getText().equalsIgnoreCase("Want more bank space?")) {
-                        Rs2Widget.clickWidget(289, 7); Rs2Random.waitEx(1200, 300); break;
+                        Rs2Widget.clickWidget(BANK_UPSELL_WIDGET, 7); waitEx(1200, 300); break;
                     }
                 }
             }
@@ -552,11 +571,11 @@ public class TutorialIslandTask extends AbstractTask {
             Rs2GameObject.interact(26815);
             sleepUntil(() -> Microbot.getVarbitPlayerValue(281) != 520);
         } else if (v == 525 || v == 530) {
-            if (Rs2Widget.isWidgetVisible(310, 2)) {
-                Widget opts = Rs2Widget.getWidget(310, 2);
+            if (Rs2Widget.isWidgetVisible(ACCOUNT_GUIDE_WIDGET, 2)) {
+                Widget opts = Rs2Widget.getWidget(ACCOUNT_GUIDE_WIDGET, 2);
                 for (Widget child : opts.getDynamicChildren()) {
                     if (child.getActions() != null && Arrays.stream(child.getActions()).anyMatch(a -> a != null && a.equalsIgnoreCase("close"))) {
-                        Rs2Widget.clickWidget(child); Rs2Random.waitEx(1200, 300); break;
+                        Rs2Widget.clickWidget(child); waitEx(1200, 300); break;
                     }
                 }
             }
@@ -566,7 +585,7 @@ public class TutorialIslandTask extends AbstractTask {
         } else if (v == 531) {
             var widget = Rs2Widget.findWidget("Account Management", true);
             Rs2Widget.clickWidget(widget);
-            Rs2Random.waitEx(1200, 300);
+            waitEx(1200, 300);
         } else if (v == 532) {
             if (Rs2Dialogue.isInDialogue()) { clickContinue(); return; }
             if (Rs2Npc.interact(npc, "Talk-to")) sleepUntil(Rs2Dialogue::isInDialogue);
@@ -577,19 +596,19 @@ public class TutorialIslandTask extends AbstractTask {
         var npc = Rs2Npc.getNpc(NpcID.BROTHER_BRACE);
         int v = Microbot.getVarbitPlayerValue(281);
 
-        if (v == 540 || v == 550 || v == 640) {
+        if (v == 540 || v == 550) {
             Rs2Walker.walkTo(new WorldPoint(3124, 3106, 0));
             if (Rs2Npc.interact(npc, "Talk-to")) sleepUntil(Rs2Dialogue::isInDialogue);
         } else if (v == 560) {
             var widget = Rs2Widget.findWidget("Prayer", true);
             Rs2Widget.clickWidget(widget);
-            Rs2Random.waitEx(1200, 300);
+            waitEx(1200, 300);
         } else if (v == 570) {
             if (Rs2Npc.interact(npc, "Talk-to")) sleepUntil(Rs2Dialogue::isInDialogue);
         } else if (v == 580) {
             var widget = Rs2Widget.findWidget("Friends list", true);
             Rs2Widget.clickWidget(widget);
-            Rs2Random.waitEx(1200, 300);
+            waitEx(1200, 300);
         } else if (v == 600) {
             if (Rs2Npc.interact(npc, "Talk-to")) sleepUntil(Rs2Dialogue::isInDialogue);
         }
@@ -609,7 +628,7 @@ public class TutorialIslandTask extends AbstractTask {
         } else if (v == 630) {
             var widget = Rs2Widget.findWidget("Magic", true);
             Rs2Widget.clickWidget(widget);
-            Rs2Random.waitEx(1200, 300);
+            waitEx(1200, 300);
         } else if (v == 640) {
             if (Rs2Npc.interact(npc, "Talk-to")) sleepUntil(Rs2Dialogue::isInDialogue);
         } else if (v == 650) {
@@ -673,7 +692,7 @@ public class TutorialIslandTask extends AbstractTask {
 
         if (hidden) {
             var magicTab = Rs2Widget.findWidget("Magic", true);
-            if (magicTab != null) { Rs2Widget.clickWidget(magicTab); Rs2Random.waitEx(200, 50); }
+            if (magicTab != null) { Rs2Widget.clickWidget(magicTab); waitEx(200, 50); }
             windStrike = Rs2Widget.getWidget(218, 8);
             if (windStrike == null) windStrike = Rs2Widget.findWidget("Wind Strike", null, true);
             if (windStrike == null) return false;
@@ -682,7 +701,7 @@ public class TutorialIslandTask extends AbstractTask {
         }
 
         Rs2Widget.clickWidget(windStrike);
-        Rs2Random.waitEx(150, 50);
+        waitEx(150, 50);
 
         Rs2NpcModel chicken = Rs2Npc.getNpcs("chicken").findFirst().orElse(null);
         if (chicken == null) return false;
