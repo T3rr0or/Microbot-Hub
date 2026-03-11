@@ -13,7 +13,7 @@ import net.runelite.client.plugins.microbot.accountbuilder.task.tasks.quests.Wat
 import net.runelite.client.plugins.microbot.accountbuilder.task.tasks.skills.*;
 import net.runelite.client.plugins.microbot.accountbuilder.task.tasks.TutorialIslandTask;
 
-import java.util.Arrays;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
@@ -67,22 +67,29 @@ public class AccountBuilderScript extends Script {
     }
 
     private List<Task> buildTaskList(AccountBuilderConfig config) {
-        return Arrays.asList(
-                // Phase 0 — Tutorial Island
-                new TutorialIslandTask(profile),
-                // Phase 1 — Foundation
-                new WaterfallQuestTask(profile),
-                new AnimalMagnetismTask(profile),
-                new TrainAttackTask(30, profile),
-                new TrainStrengthTask(40, profile),
-                // Phase 2 — Combat Base
-                new TrainDefenceTask(40, profile),
-                new TrainHitpointsTask(50, profile),
-                new TrainRangedTask(40, profile),
-                // Phase 3 — Utility Skills
-                new TrainPrayerTask(43, profile),
-                new TrainMagicTask(55, profile)
-        );
+        List<Task> tasks = new ArrayList<>();
+
+        // Phase 0 — Tutorial Island (always required)
+        tasks.add(new TutorialIslandTask(profile));
+
+        // Phase 1 — Foundation (members-only quests skipped for F2P)
+        if (config.isMember()) {
+            tasks.add(new WaterfallQuestTask(profile));
+            tasks.add(new AnimalMagnetismTask(profile));
+        }
+
+        // Phase 2 — Skill training (F2P compatible)
+        tasks.add(new TrainAttackTask(30, profile));
+        tasks.add(new TrainStrengthTask(40, profile));
+        tasks.add(new TrainDefenceTask(40, profile));
+        tasks.add(new TrainHitpointsTask(50, profile));
+        tasks.add(new TrainRangedTask(40, profile));
+
+        // Phase 3 — Utility Skills (F2P compatible)
+        tasks.add(new TrainPrayerTask(43, profile));
+        tasks.add(new TrainMagicTask(55, profile));
+
+        return tasks;
     }
 
     /** Returns elapsed runtime in milliseconds. */

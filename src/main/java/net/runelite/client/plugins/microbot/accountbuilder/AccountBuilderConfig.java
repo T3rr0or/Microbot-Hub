@@ -18,10 +18,20 @@ public interface AccountBuilderConfig extends Config {
     }
 
     @ConfigItem(
+            keyName = "isMember",
+            name = "Members Account",
+            description = "Uncheck for F2P — skips members-only quests (Waterfall Quest, Animal Magnetism)",
+            position = 2
+    )
+    default boolean isMember() {
+        return true;
+    }
+
+    @ConfigItem(
             keyName = "enableBreaks",
             name = "Enable AFK Breaks",
             description = "Take randomized AFK breaks between tasks",
-            position = 2
+            position = 3
     )
     default boolean enableBreaks() {
         return true;
@@ -31,7 +41,7 @@ public interface AccountBuilderConfig extends Config {
             keyName = "logLevel",
             name = "Log Level",
             description = "How much to log to in-game chat",
-            position = 3
+            position = 4
     )
     default LogLevel logLevel() {
         return LogLevel.INFO;
